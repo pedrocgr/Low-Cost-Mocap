@@ -2,7 +2,7 @@ FROM ubuntu:20.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# ----------- 1. Dependencies -----------
+# ----------- 1. System Dependencies -----------
 RUN apt-get update && apt-get install -y \
     build-essential cmake git pkg-config libgtk-3-dev \
     libavcodec-dev libavformat-dev libswscale-dev \
@@ -15,21 +15,31 @@ RUN apt-get update && apt-get install -y \
     libprotobuf-dev protobuf-compiler \
     libgphoto2-dev libhdf5-dev libopenexr-dev \
     libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-    qtbase5-dev wget unzip
+    qtbase5-dev wget unzip \
+    python3-tk libusb-1.0-0-dev ffmpeg
+    
+# ------------ Node installation ------------------
+RUN apt-get install -y curl
 
-# ----------- 2. Install Glog RC2  -----------
+# Install Node.js 18.x 
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs
+# Install yarn globally
+RUN npm install -g yarn
+
+# ----------- 2. Install glog RC2 -----------
 WORKDIR /opt
 RUN git clone https://github.com/google/glog.git && \
     cd glog && git checkout v0.6.0 && mkdir build && cd build && \
     cmake .. && make -j$(nproc) && make install
 
-# ----------- 3. Ceres Solver 2.1 -----------
+# ----------- 3. Install Ceres Solver 2.1 -----------
 WORKDIR /opt
 RUN git clone https://github.com/ceres-solver/ceres-solver.git && \
     cd ceres-solver && git checkout 2.1.0 && mkdir build && cd build && \
     cmake .. && make -j$(nproc) && make install
 
-# ----------- 4. OpenCV + Contrib -----------
+# ----------- 4. Install OpenCV + Contrib -----------
 WORKDIR /opt
 RUN git clone https://github.com/opencv/opencv.git && \
     cd opencv && git checkout 4.5.2
@@ -64,7 +74,13 @@ RUN cmake \
 
 RUN make -j$(nproc) && make install && ldconfig
 
-# ----------- 5. Environment ready -----------
+# ----------- 5. Python Dependencies -----------
+RUN pip3 install --upgrade pip && \
+    pip3 install cython numpy Pillow h5py scipy flask flask-socketio serial ruckig pyserial
+
+RUN pip3 install git+https://github.com/jpeixe07/pseyepy.git
+
+# ----------- 6. Ready -----------
 WORKDIR /workspace
 COPY . /workspace
 
